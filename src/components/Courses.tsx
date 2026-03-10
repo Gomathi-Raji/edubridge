@@ -18,36 +18,53 @@ import { geminiService } from '../services/geminiService';
 import { profilesApi } from '../services/api';
 import { useUser } from '../contexts/UserContext';
 
+const MOCK_COURSES = [
+  { id: 'c1', title: 'Full-Stack Web Development', instructor: 'Dr. Priya Sharma', category: 'Web Development', language: 'English', rating: 4.8, students: 12400, duration: '40 hours', progress: 35, image: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=400&h=250&fit=crop' },
+  { id: 'c2', title: 'Python for Data Science', instructor: 'Prof. Rajesh Kumar', category: 'Data Science', language: 'English', rating: 4.9, students: 18200, duration: '35 hours', progress: 0, image: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400&h=250&fit=crop' },
+  { id: 'c3', title: 'React & TypeScript Masterclass', instructor: 'Anita Desai', category: 'Web Development', language: 'English', rating: 4.7, students: 8900, duration: '28 hours', progress: 70, image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=250&fit=crop' },
+  { id: 'c4', title: 'AI / Machine Learning Fundamentals', instructor: 'Dr. Arvind Patel', category: 'AI / Machine Learning', language: 'English', rating: 4.9, students: 22100, duration: '45 hours', progress: 0, image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=250&fit=crop' },
+  { id: 'c5', title: 'Cloud Computing with AWS', instructor: 'Vikram Singh', category: 'Cloud Computing', language: 'English', rating: 4.6, students: 9700, duration: '30 hours', progress: 100, image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&h=250&fit=crop' },
+  { id: 'c6', title: 'Mobile App Development with Flutter', instructor: 'Sneha Reddy', category: 'Mobile Development', language: 'English', rating: 4.7, students: 7600, duration: '32 hours', progress: 0, image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=250&fit=crop' },
+  { id: 'c7', title: 'Cybersecurity Essentials', instructor: 'Karthik Nair', category: 'Cybersecurity', language: 'English', rating: 4.5, students: 6300, duration: '25 hours', progress: 20, image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&h=250&fit=crop' },
+  { id: 'c8', title: 'DevOps & CI/CD Pipeline', instructor: 'Ravi Menon', category: 'DevOps', language: 'English', rating: 4.6, students: 5400, duration: '22 hours', progress: 0, image: 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=400&h=250&fit=crop' },
+  // Tamil courses
+  { id: 'c9', title: 'வலை மேம்பாடு அறிமுகம் (Web Dev Intro)', instructor: 'முருகன் செல்வம்', category: 'Web Development', language: 'Tamil', rating: 4.6, students: 3200, duration: '20 மணி நேரம்', progress: 0, image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=250&fit=crop' },
+  { id: 'c10', title: 'Python நிரலாக்கம் (Python Programming)', instructor: 'கவிதா ராஜன்', category: 'Data Science', language: 'Tamil', rating: 4.7, students: 4100, duration: '25 மணி நேரம்', progress: 0, image: 'https://images.unsplash.com/photo-1515879218367-8466d910auj7?w=400&h=250&fit=crop' },
+  { id: 'c11', title: 'செயற்கை நுண்ணறிவு (AI Basics)', instructor: 'சுரேஷ் குமார்', category: 'AI / Machine Learning', language: 'Tamil', rating: 4.5, students: 2800, duration: '18 மணி நேரம்', progress: 0, image: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=400&h=250&fit=crop' },
+  // Telugu courses
+  { id: 'c12', title: 'వెబ్ డెవలప్‌మెంట్ బేసిక్స్ (Web Dev Basics)', instructor: 'రాజేష్ రెడ్డి', category: 'Web Development', language: 'Telugu', rating: 4.6, students: 2900, duration: '22 గంటలు', progress: 0, image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=250&fit=crop' },
+  { id: 'c13', title: 'డేటా సైన్స్ తెలుగులో (Data Science in Telugu)', instructor: 'ప్రియ శర్మ', category: 'Data Science', language: 'Telugu', rating: 4.7, students: 3500, duration: '28 గంటలు', progress: 0, image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=250&fit=crop' },
+  { id: 'c14', title: 'మొబైల్ యాప్ డెవలప్‌మెంట్ (Mobile Apps)', instructor: 'వెంకట్ నాయుడు', category: 'Mobile Development', language: 'Telugu', rating: 4.5, students: 1800, duration: '20 గంటలు', progress: 0, image: 'https://images.unsplash.com/photo-1526498460520-4c246339dccb?w=400&h=250&fit=crop' },
+  // Hindi courses
+  { id: 'c15', title: 'वेब डेवलपमेंट हिंदी में (Web Dev in Hindi)', instructor: 'अमित शर्मा', category: 'Web Development', language: 'Hindi', rating: 4.8, students: 15600, duration: '30 घंटे', progress: 10, image: 'https://images.unsplash.com/photo-1547658719-da2b51169166?w=400&h=250&fit=crop' },
+  { id: 'c16', title: 'पाइथन प्रोग्रामिंग (Python in Hindi)', instructor: 'नेहा गुप्ता', category: 'Data Science', language: 'Hindi', rating: 4.9, students: 21000, duration: '35 घंटे', progress: 0, image: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400&h=250&fit=crop' },
+  { id: 'c17', title: 'मशीन लर्निंग सीखें (Learn ML in Hindi)', instructor: 'राहुल वर्मा', category: 'AI / Machine Learning', language: 'Hindi', rating: 4.7, students: 11200, duration: '40 घंटे', progress: 0, image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=250&fit=crop' },
+  { id: 'c18', title: 'साइबर सुरक्षा (Cybersecurity Hindi)', instructor: 'सुनीता यादव', category: 'Cybersecurity', language: 'Hindi', rating: 4.5, students: 5800, duration: '22 घंटे', progress: 0, image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=250&fit=crop' },
+];
+
+const ALL_LANGUAGES = ['All', 'English', 'Hindi', 'Tamil', 'Telugu'];
+
 export const Courses: React.FC = () => {
   const { user } = useUser();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedLanguage, setSelectedLanguage] = useState('All');
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isRecLoading, setIsRecLoading] = useState(false);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [categories, setCategories] = useState<string[]>(['All']);
-  const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
 
+  const courses = MOCK_COURSES;
+  const categories = ['All', ...Array.from(new Set(courses.map(c => c.category)))];
+
   useEffect(() => {
-    let cancelled = false;
     (async () => {
       try {
         const p = await profilesApi.get(user!.id);
-        if (!cancelled) setProfile(p);
-        const generated = await geminiService.generatePersonalizedCourses(p);
-        if (!cancelled) {
-          setCourses(generated);
-          const cats = ['All', ...new Set<string>(generated.map((c: any) => c.category))];
-          setCategories(cats);
-        }
+        setProfile(p);
       } catch (err) {
-        console.error('Courses load error:', err);
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        console.error('Profile load error:', err);
       }
     })();
-    return () => { cancelled = true; };
   }, [user]);
 
   const fetchRecommendations = async () => {
@@ -72,17 +89,9 @@ export const Courses: React.FC = () => {
     const matchesSearch = course.title.toLowerCase().includes(search.toLowerCase()) || 
                          course.instructor.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesLanguage = selectedLanguage === 'All' || course.language === selectedLanguage;
+    return matchesSearch && matchesCategory && matchesLanguage;
   });
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 space-y-4">
-        <Sparkles size={48} className="text-indigo-600 animate-pulse" />
-        <p className="text-slate-500 font-medium">Generating personalized courses based on your profile...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
@@ -164,6 +173,26 @@ export const Courses: React.FC = () => {
         ))}
       </div>
 
+      {/* Language Filter */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Language:</span>
+        <div className="flex gap-2">
+          {ALL_LANGUAGES.map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setSelectedLanguage(lang)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                selectedLanguage === lang
+                  ? 'bg-amber-500 text-white shadow-lg shadow-amber-200'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:border-amber-300'
+              }`}
+            >
+              {lang}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Course Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCourses.map((course, i) => (
@@ -174,12 +203,18 @@ export const Courses: React.FC = () => {
             transition={{ delay: i * 0.1 }}
             className="glass-card overflow-hidden group hover:shadow-xl transition-all duration-300"
           >
-            <div className="relative h-48 overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <BookOpen size={48} className="text-white/30" />
-              </div>
-              <div className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-[10px] font-bold text-indigo-600 shadow-sm">
-                {course.category}
+            <div className="relative h-48 overflow-hidden">
+              <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+              <div className="absolute top-3 left-3 flex gap-1.5">
+                <span className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-[10px] font-bold text-indigo-600 shadow-sm">
+                  {course.category}
+                </span>
+                {course.language !== 'English' && (
+                  <span className="px-2 py-1 bg-amber-400/90 backdrop-blur-sm rounded-lg text-[10px] font-bold text-white shadow-sm">
+                    {course.language}
+                  </span>
+                )}
               </div>
               <div className="absolute top-3 right-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg flex items-center gap-1 text-[10px] font-bold text-slate-900 shadow-sm">
                 <Star size={10} className="text-amber-500 fill-current" />
