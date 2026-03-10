@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, 
   Users, 
@@ -7,7 +7,8 @@ import {
   ArrowUpRight,
   PlayCircle,
   Radio,
-  Share2
+  Share2,
+  Sparkles
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -22,16 +23,8 @@ import {
 } from 'recharts';
 import { motion } from 'motion/react';
 import type { UserData } from '../contexts/UserContext';
-
-const data = [
-  { name: 'Mon', progress: 40 },
-  { name: 'Tue', progress: 35 },
-  { name: 'Wed', progress: 65 },
-  { name: 'Thu', progress: 55 },
-  { name: 'Fri', progress: 85 },
-  { name: 'Sat', progress: 70 },
-  { name: 'Sun', progress: 90 },
-];
+import { profilesApi } from '../services/api';
+import { geminiService } from '../services/geminiService';
 
 interface StudentDashboardProps {
   user: UserData;
@@ -39,13 +32,45 @@ interface StudentDashboardProps {
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onGoLive }) => {
+  const [dashData, setDashData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await profilesApi.get(user.id);
+        const data = await geminiService.generateDashboardData(profile);
+        if (!cancelled) setDashData(data);
+      } catch (err) {
+        console.error('Dashboard data error:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user.id]);
+
+  const chartData = dashData?.weeklyActivity || [];
+  const stats = dashData?.stats || {};
+  const activeCourses = dashData?.activeCourses || [];
+  const goalPercent = dashData?.weeklyGoalPercent || 0;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <Sparkles size={48} className="text-indigo-600 animate-pulse" />
+        <p className="text-slate-500 font-medium">Loading your personalized dashboard...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Welcome back, {user.name.split(' ')[0]}! 👋</h1>
-          <p className="text-sm md:text-slate-500 mt-1">You've completed 85% of your weekly goals. Keep it up!</p>
+          <p className="text-sm md:text-slate-500 mt-1">You've completed {goalPercent}% of your weekly goals. Keep it up!</p>
         </div>
         <div className="flex gap-2 md:gap-3">
           <button className="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs md:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
@@ -76,10 +101,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onGoLi
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Courses Active', value: '4', icon: BookOpen, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Mentor Sessions', value: '12', icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { label: 'Learning Hours', value: '48h', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-          { label: 'Skill Points', value: '1,250', icon: Trophy, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Courses Active', value: String(stats.coursesActive || 0), icon: BookOpen, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Mentor Sessions', value: String(stats.mentorSessions || 0), icon: Users, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Learning Hours', value: stats.learningHours || '0h', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Skill Points', value: stats.skillPoints || '0', icon: Trophy, color: 'text-emerald-600', bg: 'bg-emerald-50' },
         ].map((stat, i) => (
           <motion.div 
             key={i}
@@ -120,7 +145,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onGoLi
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorProgress" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
@@ -165,11 +190,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onGoLi
         <div className="glass-card p-8">
           <h3 className="text-lg font-bold text-slate-900 mb-6">Active Courses</h3>
           <div className="space-y-6">
-            {[
-              { title: 'Advanced React Patterns', progress: 75, instructor: 'Sarah Drasner', color: 'bg-indigo-600' },
-              { title: 'UI/UX Design Systems', progress: 45, instructor: 'Gary Simon', color: 'bg-emerald-500' },
-              { title: 'Data Structures with AI', progress: 90, instructor: 'Colt Steele', color: 'bg-amber-500' },
-            ].map((course, i) => (
+            {activeCourses.map((course: any, i: number) => {
+              const colors = ['bg-indigo-600', 'bg-emerald-500', 'bg-amber-500'];
+              return (
               <div key={i} className="group cursor-pointer">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{course.title}</p>
@@ -179,12 +202,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onGoLi
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${course.progress}%` }}
-                    className={cn("h-full rounded-full", course.color)}
+                    className={cn("h-full rounded-full", colors[i % colors.length])}
                   />
                 </div>
                 <p className="text-xs text-slate-400 mt-2">by {course.instructor}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
           <button className="w-full mt-8 py-3 border-2 border-dashed border-slate-200 rounded-xl text-sm font-bold text-slate-400 hover:border-indigo-300 hover:text-indigo-500 transition-all">
             Browse More Courses

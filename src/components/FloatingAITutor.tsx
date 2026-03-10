@@ -20,18 +20,53 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Message } from '../types';
 import { geminiService } from '../services/geminiService';
+import { profilesApi } from '../services/api';
+import { useUser } from '../contexts/UserContext';
 
 export const FloatingAITutor: React.FC = () => {
+  const { user } = useUser();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', sender: 'AI Tutor', content: "Hello John! I'm your EduBridge AI tutor. How can I help you with your learning journey today?", timestamp: '10:00 AM', isAI: true }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [quiz, setQuiz] = useState<any[] | null>(null);
   const [lessonPlan, setLessonPlan] = useState<any | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
+  const [profile, setProfile] = useState<any>(null);
+  const [quizTopic, setQuizTopic] = useState('');
+  const [planTopic, setPlanTopic] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initRef = useRef(false);
+
+  useEffect(() => {
+    if (!user || initRef.current) return;
+    initRef.current = true;
+    (async () => {
+      try {
+        const p = await profilesApi.get(user.id);
+        setProfile(p);
+        const interests = typeof p.interests === 'string' ? JSON.parse(p.interests) : (p.interests || []);
+        const goals = typeof p.learning_goals === 'string' ? JSON.parse(p.learning_goals) : (p.learning_goals || []);
+        setQuizTopic(interests[0] || 'Programming');
+        setPlanTopic(interests[0] || 'Web Development');
+        setMessages([{
+          id: '1',
+          sender: 'AI Tutor',
+          content: `Hello ${user.name.split(' ')[0]}! I'm your EduBridge AI tutor. Based on your profile, I see you're interested in ${interests.slice(0, 3).join(', ')} and working towards ${goals[0] || 'your learning goals'}. How can I help you today?`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isAI: true
+        }]);
+      } catch {
+        setMessages([{
+          id: '1',
+          sender: 'AI Tutor',
+          content: `Hello ${user?.name?.split(' ')[0] || 'there'}! I'm your EduBridge AI tutor. How can I help you with your learning journey today?`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isAI: true
+        }]);
+      }
+    })();
+  }, [user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -100,7 +135,7 @@ export const FloatingAITutor: React.FC = () => {
       setQuiz(null);
       setLessonPlan(null);
       try {
-        const quizData = await geminiService.generateQuiz("React Hooks and State Management");
+        const quizData = await geminiService.generateQuiz(quizTopic || "Programming Fundamentals");
         setQuiz(quizData);
         setQuizAnswers({});
       } catch (error) {
@@ -113,7 +148,7 @@ export const FloatingAITutor: React.FC = () => {
       setQuiz(null);
       setLessonPlan(null);
       try {
-        const plan = await geminiService.generateLessonPlan("Introduction to Web Development");
+        const plan = await geminiService.generateLessonPlan(planTopic || "Introduction to Programming");
         setLessonPlan(plan);
       } catch (error) {
         console.error("Lesson Plan Error:", error);
@@ -121,11 +156,17 @@ export const FloatingAITutor: React.FC = () => {
         setIsLoading(false);
       }
     } else if (action === 'Explain concept') {
-      handleSend("Explain the concept of 'Recursion' using a simple analogy.");
+      const interests = profile ? (typeof profile.interests === 'string' ? JSON.parse(profile.interests) : profile.interests) : [];
+      const topic = interests[0] || 'Programming';
+      handleSend(`Explain a key concept related to ${topic} that I should know as a ${profile?.experience_level || 'beginner'}.`);
     } else if (action === 'Practice problems') {
-      handleSend("Give me a simple coding problem to practice loops in JavaScript.");
+      const skills = profile ? (typeof profile.skills === 'string' ? JSON.parse(profile.skills) : profile.skills) : [];
+      const skill = skills[0] || 'JavaScript';
+      handleSend(`Give me a practice problem to improve my ${skill} skills.`);
     } else if (action === 'Career advice') {
-      handleSend("What are some high-demand tech skills I can learn from a rural area?");
+      const goals = profile ? (typeof profile.learning_goals === 'string' ? JSON.parse(profile.learning_goals) : profile.learning_goals) : [];
+      const goal = goals[0] || 'getting a tech job';
+      handleSend(`I want to achieve: ${goal}. What career advice can you give me based on my current skills and interests?`);
     }
   };
 
@@ -191,7 +232,7 @@ export const FloatingAITutor: React.FC = () => {
                     "w-6 h-6 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-[10px]",
                     msg.isAI ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600"
                   )}>
-                    {msg.isAI ? "AI" : "JD"}
+                    {msg.isAI ? "AI" : (user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || "U")}
                   </div>
                   <div className="space-y-1">
                     <div className={cn(

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Hash, 
   MessageSquare, 
@@ -14,16 +14,39 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { geminiService } from '../services/geminiService';
+import { profilesApi } from '../services/api';
+import { useUser } from '../contexts/UserContext';
 
 export const Community: React.FC = () => {
+  const { user } = useUser();
   const [summary, setSummary] = useState<string | null>(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [channels, setChannels] = useState<string[]>([]);
+  const [studyGroups, setStudyGroups] = useState<string[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [chats, setChats] = useState<any[]>([]);
 
-  const chats = [
-    { user: 'Sarah Jenkins', role: 'Mentor', msg: 'Welcome everyone! Feel free to ask any questions about the new AI modules.', time: '10:30 AM', avatar: 'https://picsum.photos/seed/m1/40/40' },
-    { user: 'John Doe', role: 'Student', msg: 'Thanks Sarah! Really excited to start the Machine Learning path.', time: '10:32 AM', avatar: 'https://picsum.photos/seed/s1/40/40' },
-    { user: 'Alice Wang', role: 'Student', msg: 'Has anyone started the project challenge for this week?', time: '10:45 AM', avatar: 'https://picsum.photos/seed/s2/40/40' },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await profilesApi.get(user!.id);
+        const data = await geminiService.generateCommunityData(profile);
+        if (!cancelled) {
+          setChannels(data.channels || []);
+          setStudyGroups(data.studyGroups || []);
+          setOnlineUsers(data.onlineUsers || []);
+          setChats(data.recentMessages || []);
+        }
+      } catch (err) {
+        console.error('Community data error:', err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const handleSummarize = async () => {
     setIsSummarizing(true);
@@ -37,6 +60,15 @@ export const Community: React.FC = () => {
       setIsSummarizing(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <Sparkles size={48} className="text-indigo-600 animate-pulse" />
+        <p className="text-slate-500 font-medium">Setting up your personalized community...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-140px)] flex glass-card overflow-hidden">
@@ -53,10 +85,10 @@ export const Community: React.FC = () => {
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Discussion Channels</p>
             <div className="space-y-1">
-              {['general', 'announcements', 'showcase', 'help-desk'].map(ch => (
+              {channels.map((ch, idx) => (
                 <button key={ch} className={cn(
                   "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                  ch === 'general' ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" : "text-slate-600 hover:bg-slate-100"
+                  idx === 0 ? "bg-indigo-600 text-white shadow-md shadow-indigo-100" : "text-slate-600 hover:bg-slate-100"
                 )}>
                   <Hash size={16} />
                   {ch}
@@ -68,7 +100,7 @@ export const Community: React.FC = () => {
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Study Groups</p>
             <div className="space-y-1">
-              {['react-beginners', 'ai-ethics-club', 'rural-tech-innovators'].map(ch => (
+              {studyGroups.map(ch => (
                 <button key={ch} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-all">
                   <Users size={16} />
                   {ch}
@@ -132,7 +164,9 @@ export const Community: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {chats.map((chat, i) => (
             <div key={i} className="flex gap-4 group">
-              <img src={chat.avatar} alt="" className="w-10 h-10 rounded-xl shadow-sm" referrerPolicy="no-referrer" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                {chat.user?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+              </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-bold text-slate-900 text-sm">{chat.user}</span>
@@ -173,14 +207,9 @@ export const Community: React.FC = () => {
 
       {/* Online Users */}
       <div className="w-64 border-l border-slate-100 bg-slate-50/50 p-4 overflow-y-auto hidden xl:block">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Online — 12</p>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Online — {onlineUsers.filter(u => u.online).length}</p>
         <div className="space-y-4">
-          {[
-            { name: 'Sarah Jenkins', status: 'Mentor', online: true },
-            { name: 'John Doe', status: 'Student', online: true },
-            { name: 'Alice Wang', status: 'Student', online: true },
-            { name: 'Michael Chen', status: 'Mentor', online: true },
-          ].map((u, i) => (
+          {onlineUsers.map((u, i) => (
             <div key={i} className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity cursor-pointer">
               <div className="relative">
                 <div className="w-8 h-8 rounded-lg bg-slate-200" />

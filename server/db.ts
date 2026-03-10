@@ -133,6 +133,50 @@ function initTables() {
       bandwidth_saved_mb REAL DEFAULT 0,
       last_heartbeat TEXT
     );
+
+    -- Student profiles (onboarding data)
+    CREATE TABLE IF NOT EXISTS student_profiles (
+      user_id TEXT PRIMARY KEY REFERENCES users(id),
+      age_group TEXT DEFAULT '',
+      education_level TEXT DEFAULT '',
+      location TEXT DEFAULT '',
+      learning_goals TEXT DEFAULT '[]',
+      interests TEXT DEFAULT '[]',
+      skills TEXT DEFAULT '[]',
+      preferred_languages TEXT DEFAULT '[]',
+      preferred_schedule TEXT DEFAULT '',
+      experience_level TEXT DEFAULT 'beginner',
+      daily_hours TEXT DEFAULT '1-2',
+      onboarding_complete INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    -- Mentor profiles (expertise & matching data)
+    CREATE TABLE IF NOT EXISTS mentor_profiles (
+      user_id TEXT PRIMARY KEY REFERENCES users(id),
+      bio TEXT DEFAULT '',
+      expertise TEXT DEFAULT '[]',
+      experience_years INTEGER DEFAULT 0,
+      rating REAL DEFAULT 5.0,
+      total_sessions INTEGER DEFAULT 0,
+      total_students INTEGER DEFAULT 0,
+      availability TEXT DEFAULT '[]',
+      teaching_style TEXT DEFAULT '',
+      location TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    -- Mentor recommendations for students
+    CREATE TABLE IF NOT EXISTS mentor_recommendations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id TEXT NOT NULL REFERENCES users(id),
+      mentor_id TEXT NOT NULL REFERENCES users(id),
+      match_score REAL DEFAULT 0,
+      match_reasons TEXT DEFAULT '[]',
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(student_id, mentor_id)
+    );
   `);
 
   // Seed demo data if empty
@@ -199,6 +243,14 @@ function seedDemoData() {
     insertEdgeHub.run('hub-1', 'Village Learning Center - Rajasthan', 'Rajasthan, India', '192.168.1.100', 'online', 12, 156.5);
     insertEdgeHub.run('hub-2', 'Community School Hub - Bihar', 'Bihar, India', '192.168.2.100', 'online', 8, 98.2);
     insertEdgeHub.run('hub-3', 'Rural Tech Center - Tamil Nadu', 'Tamil Nadu, India', '192.168.3.100', 'relay', 5, 45.7);
+
+    // Mentor profiles
+    const insertMentorProfile = db.prepare(`
+      INSERT INTO mentor_profiles (user_id, bio, expertise, experience_years, rating, total_sessions, total_students, availability, teaching_style, location)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    insertMentorProfile.run('mentor-1', 'Passionate about making tech accessible to rural students. Specializes in web development and AI.', '["React","JavaScript","AI/ML","Web Development","Node.js","TypeScript"]', 12, 4.9, 156, 89, '["Mon","Wed","Fri"]', 'Interactive with hands-on projects', 'Chennai, India');
+    insertMentorProfile.run('mentor-2', 'Experienced educator focused on data science and cloud computing. Believes in learning by doing.', '["Python","Data Science","Cloud Computing","AWS","Machine Learning","SQL"]', 10, 4.8, 120, 67, '["Tue","Thu","Sat"]', 'Structured with real-world examples', 'Mumbai, India');
   })();
 }
 

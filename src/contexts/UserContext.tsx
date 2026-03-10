@@ -9,6 +9,7 @@ export interface UserData {
   role: 'student' | 'mentor' | 'admin';
   avatar: string;
   languages: string[];
+  onboardingComplete?: boolean;
 }
 
 interface UserContextType {

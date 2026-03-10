@@ -19,44 +19,48 @@ import {
 import { motion } from 'motion/react';
 import { Sparkles, TrendingUp, Lightbulb, AlertCircle } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
-
-const skillData = [
-  { subject: 'Frontend', A: 120, fullMark: 150 },
-  { subject: 'Backend', A: 98, fullMark: 150 },
-  { subject: 'UI/UX', A: 86, fullMark: 150 },
-  { subject: 'AI', A: 99, fullMark: 150 },
-  { subject: 'DevOps', A: 85, fullMark: 150 },
-  { subject: 'Soft Skills', A: 65, fullMark: 150 },
-];
-
-const progressData = [
-  { name: 'Week 1', completed: 4, hours: 12 },
-  { name: 'Week 2', completed: 7, hours: 18 },
-  { name: 'Week 3', completed: 5, hours: 15 },
-  { name: 'Week 4', completed: 10, hours: 25 },
-];
+import { profilesApi } from '../services/api';
+import { useUser } from '../contexts/UserContext';
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444'];
 
 export const Analytics: React.FC = () => {
+  const { user } = useUser();
   const [insights, setInsights] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const fetchInsights = async () => {
-    setIsLoading(true);
-    try {
-      const data = await geminiService.analyzePerformance({ skillData, progressData });
-      setInsights(data);
-    } catch (error) {
-      console.error("Error fetching insights:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [skillData, setSkillData] = useState<any[]>([]);
+  const [progressData, setProgressData] = useState<any[]>([]);
+  const [additionalStats, setAdditionalStats] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchInsights();
-  }, []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const profile = await profilesApi.get(user!.id);
+        const data = await geminiService.generateSkillAnalytics(profile);
+        if (!cancelled) {
+          setSkillData(data.skillData || []);
+          setProgressData(data.progressData || []);
+          setAdditionalStats(data.stats || []);
+          setInsights(data.insights || []);
+        }
+      } catch (error) {
+        console.error("Error fetching analytics:", error);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <Sparkles size={48} className="text-indigo-600 animate-pulse" />
+        <p className="text-slate-500 font-medium">Analyzing your learning data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -184,11 +188,7 @@ export const Analytics: React.FC = () => {
 
       {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          { label: 'Completion Rate', value: '92%', sub: '+4% from last month' },
-          { label: 'Avg. Quiz Score', value: '88/100', sub: 'Top 5% of students' },
-          { label: 'Mentor Feedback', value: 'Positive', sub: 'Based on 12 sessions' },
-        ].map((stat, i) => (
+        {additionalStats.map((stat: any, i: number) => (
           <div key={i} className="glass-card p-6 border-l-4 border-indigo-600">
             <p className="text-sm font-medium text-slate-500">{stat.label}</p>
             <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>

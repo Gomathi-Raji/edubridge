@@ -1,11 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath as toUrl } from 'url';
-dotenv.config({ path: path.resolve(path.dirname(toUrl(import.meta.url)), '..', '.env.backend') });
+import { fileURLToPath } from 'url';
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.env.backend') });
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 
 import { getDb, closeDb } from './db.js';
@@ -15,6 +13,7 @@ import usersRouter from './routes/users.js';
 import coursesRouter from './routes/courses.js';
 import edgeHubsRouter from './routes/edgeHubs.js';
 import aiRouter from './routes/ai.js';
+import profilesRouter from './routes/profiles.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +35,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/courses', coursesRouter);
 app.use('/api/edge-hubs', edgeHubsRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/profiles', profilesRouter);
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {

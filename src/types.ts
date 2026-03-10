@@ -10,7 +10,8 @@ export type View =
   | 'messages' 
   | 'settings'
   | 'mentor-dashboard'
-  | 'admin-dashboard';
+  | 'admin-dashboard'
+  | 'onboarding';
 
 export type ConnectionMode = 'Internet' | 'Edge Hub' | 'Satellite';
 

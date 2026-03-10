@@ -15,88 +15,47 @@ import {
 import { motion } from 'motion/react';
 import { Course } from '../types';
 import { geminiService } from '../services/geminiService';
-
-const mockCourses: (Course & { category: string; duration: string; students: number; rating: number })[] = [
-  {
-    id: '1',
-    title: 'Introduction to Web Development',
-    instructor: 'Sarah Jenkins',
-    progress: 45,
-    thumbnail: 'https://picsum.photos/seed/webdev/800/450',
-    category: 'Development',
-    duration: '12h 30m',
-    students: 1250,
-    rating: 4.8
-  },
-  {
-    id: '2',
-    title: 'Data Science for Beginners',
-    instructor: 'Dr. Aris Thorne',
-    progress: 10,
-    thumbnail: 'https://picsum.photos/seed/datascience/800/450',
-    category: 'Data Science',
-    duration: '15h 45m',
-    students: 850,
-    rating: 4.9
-  },
-  {
-    id: '3',
-    title: 'Mobile App Development with React Native',
-    instructor: 'Michael Chen',
-    progress: 0,
-    thumbnail: 'https://picsum.photos/seed/mobile/800/450',
-    category: 'Development',
-    duration: '20h 15m',
-    students: 600,
-    rating: 4.7
-  },
-  {
-    id: '4',
-    title: 'Cloud Computing Fundamentals',
-    instructor: 'Elena Rodriguez',
-    progress: 75,
-    thumbnail: 'https://picsum.photos/seed/cloud/800/450',
-    category: 'Cloud',
-    duration: '8h 20m',
-    students: 2100,
-    rating: 4.6
-  },
-  {
-    id: '5',
-    title: 'Artificial Intelligence Ethics',
-    instructor: 'Dr. Aris Thorne',
-    progress: 100,
-    thumbnail: 'https://picsum.photos/seed/aiethics/800/450',
-    category: 'AI',
-    duration: '5h 10m',
-    students: 450,
-    rating: 5.0
-  },
-  {
-    id: '6',
-    title: 'Digital Marketing Essentials',
-    instructor: 'Jessica Wu',
-    progress: 0,
-    thumbnail: 'https://picsum.photos/seed/marketing/800/450',
-    category: 'Marketing',
-    duration: '10h 00m',
-    students: 1500,
-    rating: 4.5
-  }
-];
-
-const categories = ['All', 'Development', 'Data Science', 'Cloud', 'AI', 'Marketing'];
+import { profilesApi } from '../services/api';
+import { useUser } from '../contexts/UserContext';
 
 export const Courses: React.FC = () => {
+  const { user } = useUser();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isRecLoading, setIsRecLoading] = useState(false);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>(['All']);
+  const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const p = await profilesApi.get(user!.id);
+        if (!cancelled) setProfile(p);
+        const generated = await geminiService.generatePersonalizedCourses(p);
+        if (!cancelled) {
+          setCourses(generated);
+          const cats = ['All', ...new Set<string>(generated.map((c: any) => c.category))];
+          setCategories(cats);
+        }
+      } catch (err) {
+        console.error('Courses load error:', err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const fetchRecommendations = async () => {
+    if (!profile) return;
     setIsRecLoading(true);
     try {
-      const data = await geminiService.recommendCourses(['Web Development', 'AI', 'Rural Entrepreneurship']);
+      const interests = typeof profile.interests === 'string' ? JSON.parse(profile.interests) : profile.interests;
+      const data = await geminiService.recommendCourses(interests);
       setRecommendations(data);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
@@ -106,22 +65,31 @@ export const Courses: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchRecommendations();
-  }, []);
+    if (profile) fetchRecommendations();
+  }, [profile]);
 
-  const filteredCourses = mockCourses.filter(course => {
+  const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(search.toLowerCase()) || 
                          course.instructor.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 space-y-4">
+        <Sparkles size={48} className="text-indigo-600 animate-pulse" />
+        <p className="text-slate-500 font-medium">Generating personalized courses based on your profile...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Course Library</h2>
-          <p className="text-slate-500">Expand your skills with our curated learning content</p>
+          <p className="text-slate-500">Personalized courses based on your interests and goals</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -206,13 +174,10 @@ export const Courses: React.FC = () => {
             transition={{ delay: i * 0.1 }}
             className="glass-card overflow-hidden group hover:shadow-xl transition-all duration-300"
           >
-            <div className="relative h-48 overflow-hidden">
-              <img 
-                src={course.thumbnail} 
-                alt={course.title} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                referrerPolicy="no-referrer"
-              />
+            <div className="relative h-48 overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <BookOpen size={48} className="text-white/30" />
+              </div>
               <div className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-[10px] font-bold text-indigo-600 shadow-sm">
                 {course.category}
               </div>
@@ -246,11 +211,7 @@ export const Courses: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1 text-xs text-slate-500">
                     <Users size={14} />
-                    {course.students}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
-                    <BookOpen size={14} />
-                    12 Lessons
+                    {course.students || 0}
                   </div>
                 </div>
               </div>

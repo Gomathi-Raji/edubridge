@@ -262,5 +262,171 @@ export const geminiService = {
       }
       throw new Error('Failed to parse course recommendations response');
     }
+  },
+
+  async generateDashboardData(profile: any) {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{
+          role: 'user',
+          content: `Based on this student profile, generate personalized dashboard data.
+Profile: interests=${profile.interests}, skills=${profile.skills}, goals=${profile.learning_goals}, experience=${profile.experience_level}, daily_hours=${profile.daily_hours}, schedule=${profile.preferred_schedule}.
+
+Return JSON with this exact structure:
+{
+  "weeklyGoalPercent": number (0-100),
+  "stats": { "coursesActive": number, "mentorSessions": number, "learningHours": string, "skillPoints": string },
+  "weeklyActivity": [{"name": "Mon", "progress": number}, ...7 days],
+  "activeCourses": [{"title": "string", "progress": number, "instructor": "string"}] (3 courses relevant to their interests/skills)
+}`
+        }],
+        temperature: 0.7,
+        max_tokens: 1200
+      })
+    });
+    if (!response.ok) throw new Error(`OpenRouter API error: ${response.status}`);
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    try { return JSON.parse(content); } catch { const m = content.match(/```json\n([\s\S]*?)\n```/); if (m) return JSON.parse(m[1]); throw new Error('Parse error'); }
+  },
+
+  async generatePersonalizedCourses(profile: any) {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{
+          role: 'user',
+          content: `Generate 6 personalized course recommendations for a student.
+Profile: interests=${profile.interests}, skills=${profile.skills}, goals=${profile.learning_goals}, experience=${profile.experience_level}, education=${profile.education_level}.
+
+Return JSON array with this structure:
+[{"id": "1", "title": "string", "instructor": "AI-generated realistic name", "progress": 0, "category": "string", "duration": "Xh Ym", "students": number, "rating": number(4.0-5.0), "description": "brief description"}]
+
+Categories should be relevant to their interests. Make courses appropriate for their experience level.`
+        }],
+        temperature: 0.7,
+        max_tokens: 1500
+      })
+    });
+    if (!response.ok) throw new Error(`OpenRouter API error: ${response.status}`);
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    try { return JSON.parse(content); } catch { const m = content.match(/```json\n([\s\S]*?)\n```/); if (m) return JSON.parse(m[1]); throw new Error('Parse error'); }
+  },
+
+  async generatePersonalizedMentors(profile: any) {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{
+          role: 'user',
+          content: `Generate 4 personalized mentor recommendations for a student.
+Profile: interests=${profile.interests}, skills=${profile.skills}, goals=${profile.learning_goals}, preferred_languages=${profile.preferred_languages}, schedule=${profile.preferred_schedule}.
+
+Return JSON array:
+[{"id": "1", "name": "realistic full name", "expertise": ["string","string"], "experience": "X years", "rating": number(4.5-5.0), "languages": ["string"], "availability": "string matching student schedule", "status": "online"|"busy"|"offline", "matchReason": "why this mentor is a great fit"}]
+
+Match mentors to the student's interests, language preferences, and schedule.`
+        }],
+        temperature: 0.7,
+        max_tokens: 1200
+      })
+    });
+    if (!response.ok) throw new Error(`OpenRouter API error: ${response.status}`);
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    try { return JSON.parse(content); } catch { const m = content.match(/```json\n([\s\S]*?)\n```/); if (m) return JSON.parse(m[1]); throw new Error('Parse error'); }
+  },
+
+  async generateSkillAnalytics(profile: any) {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{
+          role: 'user',
+          content: `Generate skill analytics data for a student.
+Profile: interests=${profile.interests}, skills=${profile.skills}, goals=${profile.learning_goals}, experience=${profile.experience_level}, daily_hours=${profile.daily_hours}.
+
+Return JSON:
+{
+  "skillData": [{"subject": "string relevant to their interests", "A": number(30-140), "fullMark": 150}] (6 skills based on their interests/skills),
+  "progressData": [{"name": "Week 1", "completed": number, "hours": number}] (4 weeks),
+  "stats": [{"label": "string", "value": "string", "sub": "string"}] (3 stats),
+  "insights": [{"insight": "string", "recommendation": "string"}] (3 AI insights)
+}
+
+Base skill scores on their experience level. Beginners should have lower scores.`
+        }],
+        temperature: 0.7,
+        max_tokens: 1500
+      })
+    });
+    if (!response.ok) throw new Error(`OpenRouter API error: ${response.status}`);
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    try { return JSON.parse(content); } catch { const m = content.match(/```json\n([\s\S]*?)\n```/); if (m) return JSON.parse(m[1]); throw new Error('Parse error'); }
+  },
+
+  async generateCommunityData(profile: any) {
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{
+          role: 'user',
+          content: `Generate personalized community data for a student.
+Profile: interests=${profile.interests}, skills=${profile.skills}, goals=${profile.learning_goals}, preferred_languages=${profile.preferred_languages}.
+
+Return JSON:
+{
+  "channels": ["string"] (4 discussion channels relevant to their interests),
+  "studyGroups": ["string"] (3 study groups matching their goals),
+  "onlineUsers": [{"name": "realistic name", "status": "Mentor"|"Student", "online": true}] (4 users),
+  "recentMessages": [{"user": "name", "role": "Mentor"|"Student", "msg": "relevant discussion message about their interests", "time": "HH:MM AM/PM"}] (3 messages)
+}`
+        }],
+        temperature: 0.7,
+        max_tokens: 1200
+      })
+    });
+    if (!response.ok) throw new Error(`OpenRouter API error: ${response.status}`);
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    try { return JSON.parse(content); } catch { const m = content.match(/```json\n([\s\S]*?)\n```/); if (m) return JSON.parse(m[1]); throw new Error('Parse error'); }
   }
 };

@@ -12,11 +12,39 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { geminiService } from '../services/geminiService';
+import { profilesApi } from '../services/api';
+import { useUser } from '../contexts/UserContext';
 
 export const LearningPath: React.FC = () => {
+  const { user } = useUser();
   const [milestones, setMilestones] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [goal, setGoal] = useState('Fullstack Web Development');
+  const [goal, setGoal] = useState('');
+  const [profile, setProfile] = useState<any>(null);
+  const [level, setLevel] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const p = await profilesApi.get(user!.id);
+        if (!cancelled) {
+          setProfile(p);
+          const goals = typeof p.learning_goals === 'string' ? JSON.parse(p.learning_goals) : p.learning_goals;
+          const interests = typeof p.interests === 'string' ? JSON.parse(p.interests) : p.interests;
+          const primaryGoal = goals?.[0] || interests?.[0] || 'Technology';
+          setGoal(primaryGoal);
+          const expMap: Record<string, string> = { 'Complete Beginner': 'Level 1 Starter', 'Some Experience': 'Level 2 Explorer', 'Intermediate': 'Level 3 Builder', 'Advanced': 'Level 4 Expert' };
+          setLevel(expMap[p.experience_level] || 'Level 1 Starter');
+          fetchPath(primaryGoal);
+        }
+      } catch (err) {
+        console.error('Profile load error:', err);
+        fetchPath('Fullstack Web Development');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   const fetchPath = async (targetGoal: string) => {
     setIsLoading(true);
@@ -37,10 +65,6 @@ export const LearningPath: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchPath(goal);
-  }, []);
 
   return (
     <div className="space-y-8">
@@ -68,7 +92,7 @@ export const LearningPath: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm">
             <Star size={16} fill="currentColor" />
-            Level 4 Explorer
+            {level || 'Level 1 Starter'}
           </div>
         </div>
       </div>
@@ -121,14 +145,14 @@ export const LearningPath: React.FC = () => {
                 <p className="text-sm text-slate-500 mb-4">{m.description}</p>
                 
                 <div className="flex items-center justify-between">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3].map(j => (
-                      <div key={j} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
-                        <img src={`https://picsum.photos/seed/user${j+i*10}/32/32`} alt="" referrerPolicy="no-referrer" />
-                      </div>
-                    ))}
-                    <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">
-                      +12
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "px-3 py-1 rounded-full text-[10px] font-bold",
+                      m.status === 'completed' ? "bg-emerald-100 text-emerald-600" :
+                      m.status === 'current' ? "bg-indigo-100 text-indigo-600" :
+                      "bg-slate-100 text-slate-400"
+                    )}>
+                      {m.status === 'completed' ? 'Completed' : m.status === 'current' ? 'In Progress' : 'Upcoming'}
                     </div>
                   </div>
                   <button className={cn(

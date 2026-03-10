@@ -83,6 +83,19 @@ export const aiApi = {
     request<any[]>('/ai/learning-path', { method: 'POST', body: JSON.stringify({ goal }) }),
 };
 
+// ─── Profiles API ─────────────────────────────────────────────────────────────
+
+export const profilesApi = {
+  get: (userId: string) => request<any>(`/profiles/${userId}`),
+  save: (data: any) =>
+    request<any>('/profiles', { method: 'POST', body: JSON.stringify(data) }),
+  getRecommendations: (userId: string) =>
+    request<any[]>(`/profiles/${userId}/recommendations`),
+  generateRecommendations: (userId: string) =>
+    request<any[]>(`/profiles/${userId}/recommendations/generate`, { method: 'POST' }),
+  getMentors: () => request<any[]>('/profiles/mentors/all'),
+};
+
 // ─── Health ───────────────────────────────────────────────────────────────────
 
 export const healthApi = {

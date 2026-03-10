@@ -13,8 +13,10 @@ import { Analytics } from './components/Analytics';
 import { Community } from './components/Community';
 import { Messages } from './components/Messages';
 import { Courses } from './components/Courses';
+import { StudentOnboarding } from './components/StudentOnboarding';
 import { View, ConnectionMode } from './types';
 import { useUser, type UserData } from './contexts/UserContext';
+import { profilesApi } from './services/api';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
@@ -23,13 +25,33 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>('Internet');
 
-  const handleLogin = (userData: UserData) => {
+  const handleLogin = async (userData: UserData) => {
     login(userData);
-    setCurrentView(
-      userData.role === 'student' ? 'dashboard' 
-      : userData.role === 'mentor' ? 'mentor-dashboard' 
-      : 'admin-dashboard'
-    );
+
+    if (userData.role === 'student') {
+      // Check if student has completed onboarding
+      try {
+        const profile = await profilesApi.get(userData.id);
+        if (profile && profile.onboarding_complete) {
+          updateUser({ onboardingComplete: true });
+          setCurrentView('dashboard');
+        } else {
+          setCurrentView('onboarding');
+        }
+      } catch {
+        // No profile yet → show onboarding
+        setCurrentView('onboarding');
+      }
+    } else {
+      setCurrentView(
+        userData.role === 'mentor' ? 'mentor-dashboard' : 'admin-dashboard'
+      );
+    }
+  };
+
+  const handleOnboardingComplete = (_recommendations: any[]) => {
+    updateUser({ onboardingComplete: true });
+    setCurrentView('dashboard');
   };
 
   const handleLogout = () => {
@@ -43,6 +65,7 @@ export default function App() {
 
   const renderView = () => {
     switch (currentView) {
+      case 'onboarding': return <StudentOnboarding user={user!} onComplete={handleOnboardingComplete} />;
       case 'dashboard': return <StudentDashboard user={user!} onGoLive={goToLiveSessions} />;
       case 'learning-path': return <LearningPath />;
       case 'mentors': return <MentorDiscovery />;
@@ -108,6 +131,11 @@ export default function App() {
 
   if (!isAuthenticated) {
     return <Auth onLogin={handleLogin} />;
+  }
+
+  // Full-screen onboarding for new students
+  if (currentView === 'onboarding') {
+    return <StudentOnboarding user={user!} onComplete={handleOnboardingComplete} />;
   }
 
   return (
