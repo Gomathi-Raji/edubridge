@@ -1,5 +1,6 @@
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+const MODEL = 'google/gemini-2.0-flash-001';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -29,7 +30,7 @@ export const geminiService = {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages,
         temperature: 0.7,
         max_tokens: 1000
@@ -54,7 +55,7 @@ export const geminiService = {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Generate a 3-question multiple choice quiz about ${topic}. Return it in JSON format with this structure: [{"question": "string", "options": ["A", "B", "C", "D"], "correctAnswer": "A"}]`
@@ -93,7 +94,7 @@ export const geminiService = {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Explain the concept of "${concept}" to a 15-year-old student living in a rural village. Use a simple analogy related to farming, community, or nature.`
@@ -121,7 +122,7 @@ export const geminiService = {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Generate a structured lesson plan for the topic: "${topic}". Include learning objectives, key concepts, and suggested activities. Return it in JSON format with this structure: {"topic": "string", "learningObjectives": ["string"], "keyConcepts": [{"concept": "string", "explanation": "string"}], "suggestedActivities": ["string"]}`
@@ -159,7 +160,7 @@ export const geminiService = {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Generate a personalized learning path for the goal: "${goal}". Include 5 milestones with titles and descriptions. Return it in JSON format with this structure: [{"title": "string", "description": "string"}]`
@@ -197,7 +198,7 @@ export const geminiService = {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Analyze these student performance statistics and provide 3 actionable insights: ${JSON.stringify(stats)}. Return it in JSON format with this structure: [{"insight": "string", "recommendation": "string"}]`
@@ -235,7 +236,7 @@ export const geminiService = {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Based on these interests: ${interests.join(', ')}, recommend 3 course titles and brief descriptions. Return it in JSON format with this structure: [{"title": "string", "description": "string"}]`

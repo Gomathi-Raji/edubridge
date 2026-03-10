@@ -4,6 +4,7 @@ const router = Router();
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+const MODEL = 'google/gemini-2.0-flash-001';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -36,7 +37,7 @@ router.post('/chat', async (req: Request, res: Response) => {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages,
         temperature: 0.7,
         max_tokens: 1000
@@ -70,7 +71,7 @@ router.post('/summarize', async (req: Request, res: Response) => {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Summarize this live lecture in 3 concise bullet points:\n${text}`
@@ -107,7 +108,7 @@ router.post('/quiz', async (req: Request, res: Response) => {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Generate a 3-question multiple choice quiz about ${topic}. Return it in JSON format with this structure: [{"question": "string", "options": ["A", "B", "C", "D"], "correctAnswer": "A"}]`
@@ -156,7 +157,7 @@ router.post('/explain', async (req: Request, res: Response) => {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Explain the concept of "${concept}" to a 15-year-old student living in a rural village. Use a simple analogy related to farming, community, or nature.`
@@ -193,7 +194,7 @@ router.post('/learning-path', async (req: Request, res: Response) => {
         'X-Title': 'EduBridge AI Tutor'
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: MODEL,
         messages: [{
           role: 'user',
           content: `Generate a personalized learning path for the goal: "${goal}". Include 5 milestones with titles and descriptions. Return it in JSON format with this structure: [{"title": "string", "description": "string"}]`

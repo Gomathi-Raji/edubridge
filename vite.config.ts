@@ -8,10 +8,7 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react(), tailwindcss(), basicSsl()],
-    envDir: '.',
-    envPrefix: ['VITE_', 'OPENROUTER_'],
     define: {
-      'process.env.OPENROUTER_API_KEY': JSON.stringify(env.OPENROUTER_API_KEY),
       'process.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || 'http://localhost:3001'),
     },
     resolve: {
