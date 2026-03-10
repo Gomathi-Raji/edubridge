@@ -1,161 +1,265 @@
-import { GoogleGenAI, Type } from "@google/genai";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
 
 export const geminiService = {
-  async chat(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[] = []) {
-    const model = "gemini-3-flash-preview";
-    
-    const chat = ai.chats.create({
-      model,
-      config: {
-        systemInstruction: "You are EduBridge AI, a helpful and encouraging tutor for students in rural areas. Your goal is to explain complex technical concepts in simple, relatable terms. Use analogies from daily life or nature when possible. Support multiple languages if the user asks.",
+  async chat(message: string, history: ChatMessage[] = []) {
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: "You are EduBridge AI, a helpful and encouraging tutor for students in rural areas. Your goal is to explain complex technical concepts in simple, relatable terms. Use analogies from daily life or nature when possible. Support multiple languages if the user asks."
       },
-      history: history.map(h => ({
-        role: h.role,
-        parts: h.parts
-      }))
+      ...history.map(h => ({
+        role: h.role === 'model' ? 'assistant' : h.role,
+        content: h.parts?.[0]?.text || h.content || ''
+      })),
+      { role: 'user', content: message }
+    ];
+
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages,
+        temperature: 0.7,
+        max_tokens: 1000
+      })
     });
 
-    const result = await chat.sendMessage({ message });
-    return result.text;
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
   },
 
   async generateQuiz(topic: string) {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Generate a 3-question multiple choice quiz about ${topic}. Return it in JSON format.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              question: { type: Type.STRING },
-              options: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING }
-              },
-              correctAnswer: { type: Type.STRING }
-            },
-            required: ["question", "options", "correctAnswer"]
-          }
-        }
-      }
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [{
+          role: 'user',
+          content: `Generate a 3-question multiple choice quiz about ${topic}. Return it in JSON format with this structure: [{"question": "string", "options": ["A", "B", "C", "D"], "correctAnswer": "A"}]`
+        }],
+        temperature: 0.7,
+        max_tokens: 1500
+      })
     });
-    return JSON.parse(response.text);
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      // Fallback parsing if JSON is wrapped in markdown
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+      throw new Error('Failed to parse quiz response');
+    }
   },
 
   async explainConcept(concept: string) {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Explain the concept of "${concept}" to a 15-year-old student living in a rural village. Use a simple analogy related to farming, community, or nature.`,
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [{
+          role: 'user',
+          content: `Explain the concept of "${concept}" to a 15-year-old student living in a rural village. Use a simple analogy related to farming, community, or nature.`
+        }],
+        temperature: 0.7,
+        max_tokens: 800
+      })
     });
-    return response.text;
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
   },
 
   async generateLessonPlan(topic: string) {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Generate a structured lesson plan for the topic: "${topic}". Include learning objectives, key concepts, and suggested activities. Return it in JSON format.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            topic: { type: Type.STRING },
-            learningObjectives: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            keyConcepts: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  concept: { type: Type.STRING },
-                  explanation: { type: Type.STRING }
-                },
-                required: ["concept", "explanation"]
-              }
-            },
-            suggestedActivities: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            }
-          },
-          required: ["topic", "learningObjectives", "keyConcepts", "suggestedActivities"]
-        }
-      }
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [{
+          role: 'user',
+          content: `Generate a structured lesson plan for the topic: "${topic}". Include learning objectives, key concepts, and suggested activities. Return it in JSON format with this structure: {"topic": "string", "learningObjectives": ["string"], "keyConcepts": [{"concept": "string", "explanation": "string"}], "suggestedActivities": ["string"]}`
+        }],
+        temperature: 0.7,
+        max_tokens: 1500
+      })
     });
-    return JSON.parse(response.text);
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+      throw new Error('Failed to parse lesson plan response');
+    }
   },
 
   async generateLearningPath(goal: string) {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Generate a personalized learning path for the goal: "${goal}". Include 5 milestones with titles and descriptions. Return it in JSON format.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              description: { type: Type.STRING }
-            },
-            required: ["title", "description"]
-          }
-        }
-      }
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [{
+          role: 'user',
+          content: `Generate a personalized learning path for the goal: "${goal}". Include 5 milestones with titles and descriptions. Return it in JSON format with this structure: [{"title": "string", "description": "string"}]`
+        }],
+        temperature: 0.7,
+        max_tokens: 1200
+      })
     });
-    return JSON.parse(response.text);
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+      throw new Error('Failed to parse learning path response');
+    }
   },
 
   async analyzePerformance(stats: any) {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Analyze these student performance statistics and provide 3 actionable insights: ${JSON.stringify(stats)}. Return it in JSON format.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              insight: { type: Type.STRING },
-              recommendation: { type: Type.STRING }
-            },
-            required: ["insight", "recommendation"]
-          }
-        }
-      }
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [{
+          role: 'user',
+          content: `Analyze these student performance statistics and provide 3 actionable insights: ${JSON.stringify(stats)}. Return it in JSON format with this structure: [{"insight": "string", "recommendation": "string"}]`
+        }],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
     });
-    return JSON.parse(response.text);
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+      throw new Error('Failed to parse performance analysis response');
+    }
   },
 
   async recommendCourses(interests: string[]) {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Based on these interests: ${interests.join(', ')}, recommend 3 course titles and brief descriptions. Return it in JSON format.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              description: { type: Type.STRING }
-            },
-            required: ["title", "description"]
-          }
-        }
-      }
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edubridge.vercel.app',
+        'X-Title': 'EduBridge AI Tutor'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-3.5-sonnet',
+        messages: [{
+          role: 'user',
+          content: `Based on these interests: ${interests.join(', ')}, recommend 3 course titles and brief descriptions. Return it in JSON format with this structure: [{"title": "string", "description": "string"}]`
+        }],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
     });
-    return JSON.parse(response.text);
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+      throw new Error('Failed to parse course recommendations response');
+    }
   }
 };

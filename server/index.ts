@@ -1,4 +1,7 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath as toUrl } from 'url';
+dotenv.config({ path: path.resolve(path.dirname(toUrl(import.meta.url)), '..', '.env.backend') });
 import express from 'express';
 import cors from 'cors';
 import path from 'path';

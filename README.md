@@ -47,6 +47,168 @@ Bridging the education gap in rural and underserved communities through satellit
 - **WebRTC** for video streaming
 - **WebSocket** for signaling
 
+## 🚀 Deployment to Vercel
+
+### Prerequisites
+1. **Vercel Account**: Sign up at [vercel.com](https://vercel.com)
+2. **OpenRouter API Key**: Get from [openrouter.ai](https://openrouter.ai/)
+
+### Step-by-Step Deployment
+
+#### 1. Install Vercel CLI
+```bash
+npm install -g vercel
+```
+
+#### 2. Login to Vercel
+```bash
+vercel login
+```
+
+#### 3. Deploy to Vercel
+```bash
+# From your project root
+vercel
+
+# Follow the prompts:
+# - Link to existing project or create new? → Create new
+# - Project name → edubridge (or your choice)
+# - Directory → ./ (current directory)
+```
+
+#### 4. Set Environment Variables
+In your Vercel dashboard or via CLI:
+
+```bash
+vercel env add OPENROUTER_API_KEY
+# Enter your OpenRouter API key when prompted
+
+# Or set via dashboard:
+# Project Settings → Environment Variables
+```
+
+**Required Environment Variables:**
+- `OPENROUTER_API_KEY`: Your OpenRouter API key
+- `NODE_ENV`: `production` (automatically set by Vercel)
+
+#### 5. Database Setup
+The SQLite database will be automatically created on first deployment. The app includes seeded demo data.
+
+#### Quick Deploy (Automated)
+```bash
+# One-command deployment
+npm run deploy
+
+# This will:
+# 1. Install Vercel CLI if needed
+# 2. Login to Vercel
+# 3. Install dependencies
+# 4. Build the project
+# 5. Initialize database
+# 6. Deploy to production
+```
+
+#### Manual Deploy
+```bash
+# Install dependencies
+npm install
+
+# Build for Vercel
+npm run build:vercel
+
+# Deploy
+vercel --prod
+```
+
+#### Set Environment Variables
+In your Vercel dashboard (Project Settings → Environment Variables):
+
+- `OPENROUTER_API_KEY`: Your OpenRouter API key (required for AI tutor)
+- `NODE_ENV`: `production` (automatically set)
+
+### 🎯 What Works on Vercel
+
+✅ **Fully Functional:**
+- AI Tutor (with Gemini API key)
+- QR Code Sharing
+- Dashboard & Analytics
+- User Management
+- Session Management
+- Static Frontend
+
+⚠️ **Limited Functionality:**
+- WebSocket features (chat, real-time updates) - requires separate backend
+
+### 🚀 Demo Strategy
+
+1. **Deploy Frontend to Vercel** (static hosting)
+2. **Demo Core Features:**
+   - AI Tutor interactions
+   - QR code sharing
+   - Dashboard analytics
+   - User management
+3. **For WebSocket Features:** Run locally with `npm run dev:full`
+
+### 🔧 Troubleshooting
+
+**Build Errors:**
+```bash
+# Clean and rebuild
+npm run clean
+npm install
+npm run build:vercel
+```
+
+**API Errors:**
+- Check Vercel function logs in dashboard
+- Ensure environment variables are set
+- Database is auto-initialized on first deploy
+
+**WebSocket Issues:**
+- WebSockets don't work on Vercel serverless
+- For full functionality, deploy backend separately on Railway/Heroku
+
+### 🌐 WebSocket Limitations on Vercel
+
+**Important**: Vercel serverless functions don't support persistent WebSocket connections. For the hackathon demo:
+
+**Option 1: Local Development**
+- Keep WebSocket working locally
+- Demo with `npm run dev:full`
+
+**Option 2: Separate Backend**
+- Deploy backend to Railway/Heroku
+- Update `vercel.json` to proxy WebSocket requests
+
+**Option 3: Polling Fallback**
+- Use HTTP polling for chat/Q&A during demo
+- WebRTC still works for video streaming
+
+### 🔧 Troubleshooting
+
+#### Build Errors
+```bash
+# Clear cache and rebuild
+rm -rf node_modules .vercel
+npm install
+vercel --force
+```
+
+#### Environment Variables
+```bash
+# Check env vars
+vercel env ls
+
+# Update env var
+vercel env rm OPENROUTER_API_KEY
+vercel env add OPENROUTER_API_KEY
+```
+
+#### Database Issues
+- SQLite works in Vercel serverless functions
+- Database is recreated on each cold start
+- Consider using Vercel Postgres for production
+
 ## 🎯 Hackathon Winning Features
 
 ### 🔥 Must-Have for Demo
