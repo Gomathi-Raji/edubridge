@@ -8,24 +8,48 @@ import {
   CheckCircle2, 
   XCircle,
   Video,
-  MoreVertical
+  MoreVertical,
+  Radio,
+  Share2
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import type { UserData } from '../contexts/UserContext';
 
-export const MentorDashboard: React.FC = () => {
+interface MentorDashboardProps {
+  user: UserData;
+  onGoLive: () => void;
+}
+
+export const MentorDashboard: React.FC<MentorDashboardProps> = ({ user, onGoLive }) => {
   return (
     <div className="space-y-8">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Mentor Hub 🎓</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Welcome, {user.name.split(' ')[0]}! 🎓</h1>
           <p className="text-slate-500 mt-1">You have 3 session requests waiting for approval.</p>
         </div>
         <div className="flex gap-3">
           <button className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
             Manage Availability
           </button>
-          <button className="px-4 py-2 bg-indigo-600 rounded-xl text-sm font-semibold text-white hover:bg-indigo-700 transition-shadow shadow-lg shadow-indigo-200">
-            Start Instant Session
+          <button
+            onClick={() => {
+              const sessionId = `session-${Date.now()}`;
+              const shareUrl = `${window.location.origin}?session=${sessionId}&role=student`;
+              navigator.clipboard.writeText(shareUrl);
+              alert(`Session link copied! Share this with students: ${shareUrl}`);
+            }}
+            className="px-4 py-2 bg-indigo-100 border border-indigo-200 rounded-xl text-sm font-semibold text-indigo-700 hover:bg-indigo-200 transition-colors flex items-center gap-2"
+          >
+            <Share2 size={16} />
+            Share Session
+          </button>
+          <button 
+            onClick={onGoLive}
+            className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 rounded-xl text-sm font-semibold text-white hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200 flex items-center gap-2"
+          >
+            <Radio size={16} className="animate-pulse" />
+            Go Live Now
           </button>
         </div>
       </div>

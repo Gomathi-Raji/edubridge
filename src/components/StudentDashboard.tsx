@@ -5,7 +5,9 @@ import {
   Clock, 
   Trophy,
   ArrowUpRight,
-  PlayCircle
+  PlayCircle,
+  Radio,
+  Share2
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -19,6 +21,7 @@ import {
   Area
 } from 'recharts';
 import { motion } from 'motion/react';
+import type { UserData } from '../contexts/UserContext';
 
 const data = [
   { name: 'Mon', progress: 40 },
@@ -30,21 +33,42 @@ const data = [
   { name: 'Sun', progress: 90 },
 ];
 
-export const StudentDashboard: React.FC = () => {
+interface StudentDashboardProps {
+  user: UserData;
+  onGoLive: () => void;
+}
+
+export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onGoLive }) => {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Welcome back, John! 👋</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Welcome back, {user.name.split(' ')[0]}! 👋</h1>
           <p className="text-sm md:text-slate-500 mt-1">You've completed 85% of your weekly goals. Keep it up!</p>
         </div>
         <div className="flex gap-2 md:gap-3">
           <button className="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs md:text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
             Report
           </button>
-          <button className="flex-1 md:flex-none px-4 py-2 bg-indigo-600 rounded-xl text-xs md:text-sm font-semibold text-white hover:bg-indigo-700 transition-shadow shadow-lg shadow-indigo-200">
-            Resume
+          <button
+            onClick={() => {
+              const sessionId = `session-${Date.now()}`;
+              const shareUrl = `${window.location.origin}?session=${sessionId}&role=student`;
+              navigator.clipboard.writeText(shareUrl);
+              alert(`Session link copied! Ask your mentor to share their session: ${shareUrl}`);
+            }}
+            className="flex-1 md:flex-none px-4 py-2 bg-indigo-100 border border-indigo-200 rounded-xl text-xs md:text-sm font-semibold text-indigo-700 hover:bg-indigo-200 transition-colors flex items-center justify-center gap-2"
+          >
+            <Share2 size={16} />
+            Find Session
+          </button>
+          <button 
+            onClick={onGoLive}
+            className="flex-1 md:flex-none px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 rounded-xl text-xs md:text-sm font-semibold text-white hover:from-rose-600 hover:to-pink-700 transition-all shadow-lg shadow-rose-200 flex items-center gap-2"
+          >
+            <Radio size={16} className="animate-pulse" />
+            Join Live
           </button>
         </div>
       </div>

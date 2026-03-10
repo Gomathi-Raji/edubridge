@@ -11,9 +11,11 @@ import {
   Globe,
   CheckCircle2
 } from 'lucide-react';
+import { usersApi } from '../services/api';
+import type { UserData } from '../contexts/UserContext';
 
 interface AuthProps {
-  onLogin: (role: 'student' | 'mentor' | 'admin') => void;
+  onLogin: (userData: UserData) => void;
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
@@ -21,16 +23,69 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [selectedRole, setSelectedRole] = useState<'student' | 'mentor' | 'admin'>('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError('');
+
+    try {
+      // Try to login via API (uses demo users from DB)
+      const response = await usersApi.login({ email, role: selectedRole });
+      
+      if (response && response.id) {
+        const userData: UserData = {
+          id: response.id,
+          name: response.name,
+          email: response.email,
+          role: response.role,
+          avatar: response.avatar || '',
+          languages: JSON.parse(response.languages || '[]'),
+        };
+        onLogin(userData);
+      } else {
+        // Create demo user if API doesn't return one
+        const userData: UserData = {
+          id: `${selectedRole}-${Date.now()}`,
+          name: name || (selectedRole === 'mentor' ? 'Demo Mentor' : selectedRole === 'admin' ? 'Demo Admin' : 'Demo Student'),
+          email: email || `${selectedRole}@edubridge.ai`,
+          role: selectedRole,
+          avatar: '',
+          languages: ['English'],
+        };
+        onLogin(userData);
+      }
+    } catch (err) {
+      // Fallback to demo user
+      const userData: UserData = {
+        id: `${selectedRole}-${Date.now()}`,
+        name: name || (selectedRole === 'mentor' ? 'Demo Mentor' : selectedRole === 'admin' ? 'Demo Admin' : 'Demo Student'),
+        email: email || `${selectedRole}@edubridge.ai`,
+        role: selectedRole,
+        avatar: '',
+        languages: ['English'],
+      };
+      onLogin(userData);
+    } finally {
       setIsLoading(false);
-      onLogin(selectedRole);
-    }, 1500);
+    }
+  };
+
+  const handleQuickLogin = (role: 'student' | 'mentor' | 'admin') => {
+    setIsLoading(true);
+    // Quick demo login with pre-defined users
+    const demoUsers: Record<string, UserData> = {
+      student: { id: 'student-1', name: 'John Doe', email: 'john@edubridge.ai', role: 'student', avatar: 'user123', languages: ['English'] },
+      mentor: { id: 'mentor-1', name: 'Dr. Sarah Chen', email: 'sarah@edubridge.ai', role: 'mentor', avatar: 'mentor1', languages: ['English', 'Hindi', 'Tamil'] },
+      admin: { id: 'admin-1', name: 'Admin User', email: 'admin@edubridge.ai', role: 'admin', avatar: 'admin1', languages: ['English'] },
+    };
+    setTimeout(() => {
+      onLogin(demoUsers[role]);
+      setIsLoading(false);
+    }, 500);
   };
 
   const roles = [
@@ -201,6 +256,37 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 {isLogin ? "Sign Up" : "Sign In"}
               </button>
             </p>
+          </div>
+
+          {/* Quick Demo Login */}
+          <div className="mt-6 pt-6 border-t border-slate-100">
+            <p className="text-xs text-slate-400 text-center mb-3 font-medium">Quick Demo Login</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('student')}
+                disabled={isLoading}
+                className="flex-1 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors disabled:opacity-50"
+              >
+                Student
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('mentor')}
+                disabled={isLoading}
+                className="flex-1 py-2.5 bg-purple-50 text-purple-600 rounded-xl text-xs font-bold hover:bg-purple-100 transition-colors disabled:opacity-50"
+              >
+                Mentor
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin')}
+                disabled={isLoading}
+                className="flex-1 py-2.5 bg-amber-50 text-amber-600 rounded-xl text-xs font-bold hover:bg-amber-100 transition-colors disabled:opacity-50"
+              >
+                Admin
+              </button>
+            </div>
           </div>
         </div>
       </div>

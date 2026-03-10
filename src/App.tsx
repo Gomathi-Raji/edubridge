@@ -14,33 +14,41 @@ import { Community } from './components/Community';
 import { Messages } from './components/Messages';
 import { Courses } from './components/Courses';
 import { View, ConnectionMode } from './types';
+import { useUser, type UserData } from './contexts/UserContext';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, isAuthenticated, login, logout, updateUser } = useUser();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [collapsed, setCollapsed] = useState(false);
   const [connectionMode, setConnectionMode] = useState<ConnectionMode>('Internet');
-  const [userRole, setUserRole] = useState<'student' | 'mentor' | 'admin'>('student');
 
-  const handleLogin = (role: 'student' | 'mentor' | 'admin') => {
-    setUserRole(role);
-    setIsAuthenticated(true);
-    setCurrentView(role === 'student' ? 'dashboard' : role === 'mentor' ? 'mentor-dashboard' : 'admin-dashboard');
+  const handleLogin = (userData: UserData) => {
+    login(userData);
+    setCurrentView(
+      userData.role === 'student' ? 'dashboard' 
+      : userData.role === 'mentor' ? 'mentor-dashboard' 
+      : 'admin-dashboard'
+    );
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    logout();
+    setCurrentView('dashboard');
+  };
+
+  const goToLiveSessions = () => {
+    setCurrentView('live-sessions');
   };
 
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard': return <StudentDashboard />;
+      case 'dashboard': return <StudentDashboard user={user!} onGoLive={goToLiveSessions} />;
       case 'learning-path': return <LearningPath />;
       case 'mentors': return <MentorDiscovery />;
       case 'courses': return <Courses />;
-      case 'live-sessions': return <LiveClassroom />;
-      case 'mentor-dashboard': return <MentorDashboard />;
+      case 'live-sessions': return <LiveClassroom userRole={user?.role} userName={user?.name} />;
+      case 'mentor-dashboard': return <MentorDashboard user={user!} onGoLive={goToLiveSessions} />;
       case 'admin-dashboard': return <AdminDashboard />;
       case 'analytics': return <Analytics />;
       case 'community': return <Community />;
@@ -55,10 +63,10 @@ export default function App() {
                 <p className="text-sm text-slate-500">Change your platform perspective</p>
               </div>
               <select 
-                value={userRole}
+                value={user?.role || 'student'}
                 onChange={(e) => {
-                  const role = e.target.value as any;
-                  setUserRole(role);
+                  const role = e.target.value as 'student' | 'mentor' | 'admin';
+                  updateUser({ role });
                   setCurrentView(role === 'student' ? 'dashboard' : role === 'mentor' ? 'mentor-dashboard' : 'admin-dashboard');
                 }}
                 className="bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold text-slate-700 outline-none"
@@ -73,18 +81,28 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">Full Name</label>
-                  <input type="text" defaultValue="John Doe" className="w-full bg-slate-50 border-none rounded-lg p-2 text-sm" />
+                  <input 
+                    type="text" 
+                    value={user?.name || ''} 
+                    onChange={(e) => updateUser({ name: e.target.value })}
+                    className="w-full bg-slate-50 border-none rounded-lg p-2 text-sm" 
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">Email Address</label>
-                  <input type="text" defaultValue="john@edubridge.ai" className="w-full bg-slate-50 border-none rounded-lg p-2 text-sm" />
+                  <input 
+                    type="text" 
+                    value={user?.email || ''} 
+                    onChange={(e) => updateUser({ email: e.target.value })}
+                    className="w-full bg-slate-50 border-none rounded-lg p-2 text-sm" 
+                  />
                 </div>
               </div>
             </div>
           </div>
         </div>
       );
-      default: return <StudentDashboard />;
+      default: return <StudentDashboard onGoLive={goToLiveSessions} />;
     }
   };
 
@@ -99,7 +117,7 @@ export default function App() {
         onViewChange={setCurrentView} 
         collapsed={collapsed} 
         setCollapsed={setCollapsed}
-        userRole={userRole}
+        userRole={user?.role || 'student'}
         onLogout={handleLogout}
       />
       
